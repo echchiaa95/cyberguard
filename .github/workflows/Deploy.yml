@@ -26,11 +26,27 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
+          node-version: 22
+
+      - name: Check project files
+        run: |
+          echo "Repository root:"
+          pwd
+          echo "Files:"
+          ls -la
+          echo "Checking package.json..."
+          test -f package.json
+          echo "package.json: OK"
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          if [ -f package-lock.json ]; then
+            echo "package-lock.json found — using npm ci"
+            npm ci
+          else
+            echo "WARNING: package-lock.json not found — using npm install"
+            npm install
+          fi
 
       - name: TypeScript check
         run: npx tsc -b
@@ -41,6 +57,14 @@ jobs:
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
           VITE_BASE_PATH: /${{ github.event.repository.name }}/
         run: npm run build
+
+      - name: Verify build
+        run: |
+          test -d dist
+          test -f dist/index.html
+          echo "Build verified successfully."
+          echo "Generated files:"
+          find dist -maxdepth 2 -type f | head -50
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
